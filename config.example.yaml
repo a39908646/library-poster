@@ -1,0 +1,97 @@
+# Library Poster - 配置文件示例
+# 复制此文件为 config.yaml 并修改为您的实际配置
+
+# 应用设置
+app:
+  timezone: "Asia/Shanghai"
+  data_dir: "./data"
+  log_level: "INFO"
+
+# 媒体服务器配置
+servers:
+  - name: "我的 Emby"
+    type: "emby"
+    url: "http://localhost:8096"
+    api_key: "your_emby_api_key_here"
+    exclude_libraries:
+      - "音乐"
+      - "照片"
+
+  # - name: "我的 Jellyfin"
+  #   type: "jellyfin"
+  #   url: "http://localhost:8920"
+  #   api_key: "your_jellyfin_api_key_here"
+  #   exclude_libraries: []
+
+# 封面生成配置
+cover:
+  style: "single_1"  # single_1, single_2, multi_1
+  sort_by: "Random"  # Random, DateCreated, SortName
+  save_to_local: true
+  output_dir: "covers_output"
+  custom_images_dir: ""
+
+# 字体配置
+fonts:
+  main:
+    zh_url: "https://github.com/lxgw/LxgwWenKai/releases/download/v1.500/LXGWWenKai-Regular.ttf"
+    en_url: "https://github.com/lxgw/LxgwWenKai/releases/download/v1.500/LXGWWenKai-Regular.ttf"
+    zh_local: ""
+    en_local: ""
+    zh_size: 1.0
+    en_size: 1.0
+
+  multi_1:
+    zh_url: ""
+    en_url: ""
+    zh_local: ""
+    en_local: ""
+    zh_size: 1.0
+    en_size: 1.0
+    use_main_font: false
+
+# 风格参数配置
+style_params:
+  single:
+    blur_size: 50
+    color_ratio: 0.8
+    use_primary: false
+
+  multi_1:
+    blur: false
+    blur_size: 50
+    color_ratio: 0.8
+    use_primary: true
+
+# 标题配置
+titles:
+  "电影":
+    zh: "电影"
+    en: "MOVIES"
+  "电视剧":
+    zh: "电视剧"
+    en: "TV SHOWS"
+  "动漫":
+    zh: "动漫"
+    en: "ANIME"
+
+# 定时任务配置
+scheduler:
+  enabled: false
+  cron: "0 2 * * *"  # 每天凌晨 2 点
+
+# Webhook 配置
+webhook:
+  enabled: true
+  delay: 60  # 延迟 60 秒处理
+
+# 网络配置
+network:
+  proxy: ""
+  github_proxy: ""
+  timeout: 30
+  retries: 3
+
+# 性能配置
+performance:
+  max_concurrent: 3
