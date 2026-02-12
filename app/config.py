@@ -107,6 +107,7 @@ class FontSetConfig(BaseModel):
     en_local: str = ""
     zh_size: float = 1.0
     en_size: float = 1.0
+    use_main_font: bool = False
 
 
 class FontsConfig(BaseModel):
