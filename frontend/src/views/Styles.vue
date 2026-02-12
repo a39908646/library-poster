@@ -37,7 +37,42 @@
               </div>
             </div>
 
-            <n-form label-placement="left" label-width="120" style="max-width: 500px;">
+            <!-- 单图风格参数 -->
+            <n-form v-if="styleConfig.style.startsWith('single')" label-placement="left" label-width="140" style="max-width: 500px;">
+              <n-form-item label="背景模糊程度">
+                <n-slider v-model:value="styleParams.single.blur_size" :min="0" :max="100" :step="5" />
+                <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.blur_size }}</span>
+              </n-form-item>
+              <n-form-item label="背景颜色比例">
+                <n-slider v-model:value="styleParams.single.color_ratio" :min="0" :max="1" :step="0.1" />
+                <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.color_ratio }}</span>
+              </n-form-item>
+              <n-form-item label="优先使用海报图">
+                <n-switch v-model:value="styleParams.single.use_primary" />
+                <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
+              </n-form-item>
+            </n-form>
+
+            <!-- 多图风格参数 -->
+            <n-form v-if="styleConfig.style === 'multi_1'" label-placement="left" label-width="140" style="max-width: 500px;">
+              <n-form-item label="启用背景模糊">
+                <n-switch v-model:value="styleParams.multi_1.blur" />
+              </n-form-item>
+              <n-form-item label="背景模糊程度" v-if="styleParams.multi_1.blur">
+                <n-slider v-model:value="styleParams.multi_1.blur_size" :min="0" :max="100" :step="5" />
+                <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.blur_size }}</span>
+              </n-form-item>
+              <n-form-item label="背景颜色比例">
+                <n-slider v-model:value="styleParams.multi_1.color_ratio" :min="0" :max="1" :step="0.1" />
+                <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.color_ratio }}</span>
+              </n-form-item>
+              <n-form-item label="优先使用海报图">
+                <n-switch v-model:value="styleParams.multi_1.use_primary" />
+                <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
+              </n-form-item>
+            </n-form>
+
+            <n-form label-placement="left" label-width="140" style="max-width: 500px;">
               <n-form-item label="排序方式">
                 <n-select v-model:value="styleConfig.sort_by" :options="sortByOptions" />
               </n-form-item>
@@ -89,46 +124,7 @@
           </n-space>
         </n-tab-pane>
 
-        <!-- 单图风格设置 -->
-        <n-tab-pane name="single_params" tab="单图风格设置">
-          <n-form label-placement="left" label-width="140" style="max-width: 500px;">
-            <n-form-item label="背景模糊程度">
-              <n-slider v-model:value="styleParams.single.blur_size" :min="0" :max="100" :step="5" />
-              <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.blur_size }}</span>
-            </n-form-item>
-            <n-form-item label="背景颜色比例">
-              <n-slider v-model:value="styleParams.single.color_ratio" :min="0" :max="1" :step="0.1" />
-              <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.color_ratio }}</span>
-            </n-form-item>
-            <n-form-item label="优先使用海报图">
-              <n-switch v-model:value="styleParams.single.use_primary" />
-              <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
-            </n-form-item>
-          </n-form>
-        </n-tab-pane>
-
-        <!-- 多图风格设置 -->
-        <n-tab-pane name="multi_params" tab="多图风格设置">
-          <n-form label-placement="left" label-width="140" style="max-width: 500px;">
-            <n-form-item label="启用背景模糊">
-              <n-switch v-model:value="styleParams.multi_1.blur" />
-            </n-form-item>
-            <n-form-item label="背景模糊程度" v-if="styleParams.multi_1.blur">
-              <n-slider v-model:value="styleParams.multi_1.blur_size" :min="0" :max="100" :step="5" />
-              <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.blur_size }}</span>
-            </n-form-item>
-            <n-form-item label="背景颜色比例">
-              <n-slider v-model:value="styleParams.multi_1.color_ratio" :min="0" :max="1" :step="0.1" />
-              <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.color_ratio }}</span>
-            </n-form-item>
-            <n-form-item label="优先使用海报图">
-              <n-switch v-model:value="styleParams.multi_1.use_primary" />
-              <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
-            </n-form-item>
-          </n-form>
-        </n-tab-pane>
-
-        <!-- 应用 -->
+        <!-- 应用封面 -->
         <n-tab-pane name="apply" tab="应用封面">
           <n-space vertical :size="16">
             <n-form label-placement="left" label-width="120" style="max-width: 600px;">
