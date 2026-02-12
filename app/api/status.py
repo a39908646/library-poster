@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import psutil
+import os
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
@@ -17,16 +17,31 @@ def set_cover_service(service):
     _cover_service = service
 
 
+def _get_memory_mb() -> float:
+    """读取当前进程 RSS（兼容 Linux /proc 和其他平台）"""
+    try:
+        with open(f"/proc/{os.getpid()}/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) / 1024  # kB -> MB
+    except (FileNotFoundError, OSError):
+        pass
+    # fallback: resource 模块（macOS/Linux）
+    try:
+        import resource
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        return usage.ru_maxrss / 1024  # kB -> MB (Linux)
+    except (ImportError, AttributeError):
+        pass
+    return 0.0
+
+
 @router.get("")
 async def get_status():
-    process = psutil.Process()
-    memory_info = process.memory_info()
-
     return {
         "status": "running",
         "uptime": datetime.now().isoformat(),
-        "memory_mb": memory_info.rss / 1024 / 1024,
-        "cpu_percent": process.cpu_percent()
+        "memory_mb": round(_get_memory_mb(), 2),
     }
 
 
