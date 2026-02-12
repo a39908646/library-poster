@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const client = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -36,8 +36,49 @@ export const api = {
     return client.get('/config')
   },
 
+  getFullConfig() {
+    return client.get('/config/full')
+  },
+
+  validateConfig(data) {
+    return client.post('/config/validate', data)
+  },
+
+  saveConfig(data) {
+    return client.put('/config', data)
+  },
+
   reloadConfig() {
     return client.post('/config/reload')
+  },
+
+  // 预览相关
+  previewCover(serverName, libraryName = null, configOverride = null) {
+    return client.post('/preview', {
+      server_name: serverName,
+      library_name: libraryName,
+      config_override: configOverride
+    })
+  },
+
+  // 批量操作相关
+  createBatch(targets, maxConcurrent = null) {
+    return client.post('/batch', {
+      targets,
+      max_concurrent: maxConcurrent
+    })
+  },
+
+  listBatches() {
+    return client.get('/batch')
+  },
+
+  getBatchStatus(jobId) {
+    return client.get(`/batch/${jobId}`)
+  },
+
+  cancelBatch(jobId) {
+    return client.post(`/batch/${jobId}/cancel`)
   },
 
   // 生成相关

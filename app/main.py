@@ -1,46 +1,70 @@
 import logging
 from contextlib import asynccontextmanager
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
-from app.config import get_config
+from app.config import (
+    get_config,
+    register_config_reload_callback,
+    unregister_config_reload_callback,
+)
 from app.scheduler.jobs import CoverScheduler
 from app.services.cover import CoverService
+from app.services.job_manager import JobManager
 from app.webhook.handlers import router as webhook_router, set_cover_service
 from app.api.config import router as config_router
 from app.api.generate import router as generate_router, set_cover_service as set_api_service
 from app.api.status import router as status_router
+from app.api.preview import router as preview_router, set_cover_service as set_preview_service
+from app.api.batch import router as batch_router, set_job_manager
 
 logger = logging.getLogger(__name__)
 
-scheduler: CoverScheduler = None
-cover_service: CoverService = None
+scheduler: Optional[CoverScheduler] = None
+cover_service: Optional[CoverService] = None
+job_manager: Optional[JobManager] = None
+
+
+def _on_config_reloaded(config):
+    global scheduler, cover_service, job_manager
+    if not cover_service:
+        return
+
+    cover_service.refresh_config(config)
+    if scheduler:
+        scheduler.set_service(cover_service)
+        scheduler.reload(config)
+    if job_manager:
+        job_manager.bind_cover_service(cover_service)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global scheduler, cover_service
+    global scheduler, cover_service, job_manager
     config = get_config()
 
-    # 初始化封面服务
     cover_service = CoverService(config)
-
-    # 初始化调度器
     scheduler = CoverScheduler(config)
     scheduler.set_service(cover_service)
     scheduler.start()
+    job_manager = JobManager(cover_service)
 
-    # 设置全局服务实例
+    register_config_reload_callback(_on_config_reloaded)
     set_cover_service(cover_service)
     set_api_service(cover_service)
+    set_preview_service(cover_service)
+    set_job_manager(job_manager)
 
     logger.info("Application started")
     yield
 
-    scheduler.stop()
+    unregister_config_reload_callback(_on_config_reloaded)
+    if scheduler:
+        scheduler.stop()
     logger.info("Application stopped")
 
 
@@ -63,6 +87,8 @@ app.include_router(webhook_router)
 app.include_router(config_router)
 app.include_router(generate_router)
 app.include_router(status_router)
+app.include_router(preview_router)
+app.include_router(batch_router)
 
 
 @app.get("/health")
