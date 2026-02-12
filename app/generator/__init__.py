@@ -3,9 +3,6 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from app.config import Config
-from app.generator.style_single_1 import create_style_single_1
-from app.generator.style_single_2 import create_style_single_2
-from app.generator.style_multi_1 import create_style_multi_1
 
 logger = logging.getLogger(__name__)
 
@@ -17,21 +14,13 @@ def generate_cover(
     config: Config
 ) -> Optional[str]:
     """
-    生成封面
-
-    Args:
-        library_dir: 媒体库图片目录
-        title: (中文标题, 英文标题)
-        font_paths: (中文字体路径, 英文字体路径)
-        config: 配置对象
-
-    Returns:
-        Base64 编码的图片数据，失败返回 None
+    生成封面（懒加载生成器模块，避免启动时加载 PIL/numpy）
     """
     style = config.cover.style
 
     try:
         if style == "single_1":
+            from app.generator.style_single_1 import create_style_single_1
             params = config.style_params.single
             font_size = (config.fonts.main.zh_size, config.fonts.main.en_size)
             image_path = library_dir / "1.jpg"
@@ -44,6 +33,7 @@ def generate_cover(
                 color_ratio=params.color_ratio
             )
         elif style == "single_2":
+            from app.generator.style_single_2 import create_style_single_2
             params = config.style_params.single
             font_size = (config.fonts.main.zh_size, config.fonts.main.en_size)
             image_path = library_dir / "1.jpg"
@@ -56,6 +46,7 @@ def generate_cover(
                 color_ratio=params.color_ratio
             )
         elif style == "multi_1":
+            from app.generator.style_multi_1 import create_style_multi_1
             params = config.style_params.multi_1
             if config.fonts.multi_1.use_main_font:
                 font_size = (config.fonts.main.zh_size, config.fonts.main.en_size)

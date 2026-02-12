@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 
 from app.models.job import (
@@ -13,6 +13,9 @@ from app.models.job import (
 )
 
 logger = logging.getLogger(__name__)
+
+# 已完成任务保留时间
+_JOB_TTL = timedelta(hours=1)
 
 
 class JobManager:
@@ -26,6 +29,21 @@ class JobManager:
 
     def bind_cover_service(self, cover_service):
         self.cover_service = cover_service
+
+    def _cleanup_expired(self):
+        """清理已过期的已完成任务（在锁内调用）"""
+        now = datetime.now(timezone.utc)
+        expired = [
+            jid for jid, job in self._jobs.items()
+            if job.status in self._TERMINAL_STATUSES
+            and job.finished_at
+            and (now - job.finished_at) > _JOB_TTL
+        ]
+        for jid in expired:
+            del self._jobs[jid]
+            self._job_tasks.pop(jid, None)
+        if expired:
+            logger.debug("Cleaned up %d expired jobs", len(expired))
 
     async def create_job(
         self,
@@ -49,6 +67,7 @@ class JobManager:
         )
 
         async with self._lock:
+            self._cleanup_expired()
             self._jobs[job.job_id] = job
             self._job_tasks[job.job_id] = asyncio.create_task(self._run_job(job.job_id))
 
@@ -56,6 +75,7 @@ class JobManager:
 
     async def list_jobs(self) -> List[JobInfo]:
         async with self._lock:
+            self._cleanup_expired()
             jobs = [job.model_copy(deep=True) for job in self._jobs.values()]
         return sorted(jobs, key=lambda item: item.created_at, reverse=True)
 

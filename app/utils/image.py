@@ -5,7 +5,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Optional, Tuple
 
-from PIL import Image
 from requests import Session
 from requests.exceptions import RequestException
 
@@ -51,6 +50,7 @@ def download_image(
 
 
 def convert_image_bytes(image_bytes: bytes, fmt: str = "PNG") -> bytes:
+    from PIL import Image
     with Image.open(BytesIO(image_bytes)) as img:
         buffer = BytesIO()
         img.save(buffer, format=fmt)
