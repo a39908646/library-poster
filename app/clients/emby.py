@@ -35,7 +35,7 @@ class EmbyClient(BaseClient):
         library_id: str,
         offset: int = 0,
         limit: int = 20,
-        include_types: str = "Movie,Series",
+        include_types: str = None,
         sort_by: str = "Random",
         sort_order: str = "Descending",
         recursive: bool = True,
@@ -45,10 +45,11 @@ class EmbyClient(BaseClient):
             "SortBy": sort_by,
             "Limit": limit,
             "StartIndex": offset,
-            "IncludeItemTypes": include_types,
             "Recursive": str(recursive).lower(),
             "SortOrder": sort_order,
         }
+        if include_types:
+            params["IncludeItemTypes"] = include_types
         data = self.get_json(self._path("/Items"), params=params)
         return data.get("Items", [])
 

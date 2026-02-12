@@ -242,6 +242,20 @@ class CoverService:
         # 确定需要的图片数量
         required_count = 1 if config.cover.style.startswith("single") else 9
 
+        # 根据媒体库类型决定查询类型（参照原插件）
+        collection_type = library.get("CollectionType", "")
+        if collection_type == "music":
+            include_types = "MusicAlbum,Audio"
+        elif collection_type == "boxsets":
+            include_types = "BoxSet,Movie"
+        elif collection_type == "playlists":
+            include_types = "Playlist"
+        elif collection_type in ("movies", "tvshows"):
+            include_types = "Movie,Series"
+        else:
+            # 混合内容、家庭视频等：不限制类型
+            include_types = None
+
         # 清理旧图片
         for existing in library_dir.glob("*.jpg"):
             existing.unlink(missing_ok=True)
@@ -257,6 +271,7 @@ class CoverService:
                     library_id=library_id,
                     offset=offset,
                     limit=20,
+                    include_types=include_types,
                     sort_by=config.cover.sort_by
                 )
                 items.extend(batch)
