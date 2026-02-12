@@ -265,6 +265,9 @@ class CoverService:
         offset = 0
         max_attempts = 5
 
+        # 需要更多候选项（有些项目可能没有图片）
+        fetch_count = required_count * 5
+
         for _ in range(max_attempts):
             try:
                 batch = client.get_items(
@@ -277,19 +280,19 @@ class CoverService:
                 items.extend(batch)
                 offset += len(batch)
 
-                if len(items) >= required_count or len(batch) == 0:
+                if len(items) >= fetch_count or len(batch) == 0:
                     break
             except Exception as e:
                 logger.error(f"Failed to get items: {e}")
                 break
 
-        if len(items) < required_count:
-            logger.warning(f"Not enough items: {len(items)}/{required_count}")
+        if not items:
+            logger.warning(f"No items found in library")
             return False
 
-        # 下载图片
+        # 下载图片（遍历所有候选项，跳过没有图片的）
         downloaded = 0
-        for item in items[:required_count]:
+        for item in items:
             try:
                 image_url = self._get_image_url(client, item, config)
                 if not image_url:
@@ -318,38 +321,43 @@ class CoverService:
         return downloaded >= required_count
 
     def _get_image_url(self, client, item: Dict[str, Any], config: Config) -> Optional[str]:
-        """获取媒体项的图片 URL（返回完整绝对 URL）"""
-        item_id = item.get("Id")
-        if not item_id:
-            return None
-
-        # 优先使用背景图（除非配置了优先使用海报）
+        """获取媒体项的图片 URL（参照原插件的完整回退链）"""
         use_primary = (
             config.style_params.single.use_primary
             if config.cover.style.startswith("single")
             else config.style_params.multi_1.use_primary
         )
 
-        path = None
-        if not use_primary:
-            # 尝试背景图
-            if item.get("BackdropImageTags") and len(item["BackdropImageTags"]) > 0:
-                tag = item["BackdropImageTags"][0]
-                path = client._path(f"/Items/{item_id}/Images/Backdrop/0?tag={tag}")
+        # 构建候选列表：(item_id, image_type, tag)
+        candidates = []
+        item_id = item.get("Id")
 
-        if path is None:
-            # 使用海报图
+        if use_primary:
+            # 优先海报图
             if item.get("ImageTags", {}).get("Primary"):
-                tag = item["ImageTags"]["Primary"]
-                path = client._path(f"/Items/{item_id}/Images/Primary?tag={tag}")
+                candidates.append((item_id, "Primary", item["ImageTags"]["Primary"]))
+            if item.get("ParentBackdropImageTags"):
+                candidates.append((item.get("ParentBackdropItemId"), "Backdrop/0", item["ParentBackdropImageTags"][0]))
+            if item.get("BackdropImageTags"):
+                candidates.append((item_id, "Backdrop/0", item["BackdropImageTags"][0]))
+        else:
+            # 优先背景图
+            if item.get("ParentBackdropImageTags"):
+                candidates.append((item.get("ParentBackdropItemId"), "Backdrop/0", item["ParentBackdropImageTags"][0]))
+            if item.get("BackdropImageTags"):
+                candidates.append((item_id, "Backdrop/0", item["BackdropImageTags"][0]))
+            if item.get("ImageTags", {}).get("Primary"):
+                candidates.append((item_id, "Primary", item["ImageTags"]["Primary"]))
 
-        if path is None:
-            return None
+        # 取第一个有效候选
+        for cid, img_type, tag in candidates:
+            if cid and tag:
+                path = client._path(f"/Items/{cid}/Images/{img_type}?tag={tag}")
+                url = f"{client.base_url}{path}"
+                separator = "&" if "?" in url else "?"
+                return f"{url}{separator}api_key={client.api_key}"
 
-        # 拼接完整 URL（base_url + path + api_key）
-        url = f"{client.base_url}{path}"
-        separator = "&" if "?" in url else "?"
-        return f"{url}{separator}api_key={client.api_key}"
+        return None
 
     def _get_library_title(self, library_name: str, config: Optional[Config] = None) -> Tuple[str, str]:
         """获取媒体库标题（中文、英文）"""
