@@ -6,7 +6,7 @@ services:
     container_name: library-poster
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8756:8000"
     volumes:
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
