@@ -1,149 +1,168 @@
 <template>
   <n-space vertical :size="24">
-    <!-- 风格配置 -->
-    <n-card title="风格配置">
-      <n-space vertical :size="16">
-        <n-form label-placement="left" label-width="120">
-          <n-form-item label="封面风格">
-            <n-radio-group v-model:value="styleConfig.style" @update:value="onStyleChange">
-              <n-radio-button value="single_1">单图风格 1</n-radio-button>
-              <n-radio-button value="single_2">单图风格 2</n-radio-button>
-              <n-radio-button value="multi_1">多图风格</n-radio-button>
-            </n-radio-group>
-          </n-form-item>
-          <n-form-item label="排序方式">
-            <n-select v-model:value="styleConfig.sort_by" :options="sortByOptions" style="width: 200px;" />
-          </n-form-item>
+    <n-card>
+      <template #header>
+        <n-space justify="space-between" align="center">
+          <span>风格配置</span>
+          <n-space>
+            <n-tag v-if="hasChanges" type="warning">有未保存的更改</n-tag>
+            <n-button type="primary" @click="handleSaveConfig" :loading="saving" :disabled="!hasChanges">
+              <template #icon><n-icon :component="SaveOutline" /></template>
+              保存配置
+            </n-button>
+          </n-space>
+        </n-space>
+      </template>
 
-          <n-divider title-placement="left">
-            {{ styleConfig.style === 'multi_1' ? '多图风格参数' : '单图风格参数' }}
-          </n-divider>
+      <n-tabs type="line" animated>
+        <!-- 封面风格 -->
+        <n-tab-pane name="style" tab="封面风格">
+          <n-space vertical :size="16">
+            <div class="style-cards">
+              <div
+                v-for="s in styleList"
+                :key="s.value"
+                class="style-card"
+                :class="{ active: styleConfig.style === s.value }"
+                @click="styleConfig.style = s.value"
+              >
+                <img :src="s.image" :alt="s.label" class="style-image" />
+                <div class="style-label">
+                  <n-radio
+                    :checked="styleConfig.style === s.value"
+                    @update:checked="styleConfig.style = s.value"
+                  />
+                  <span>{{ s.label }}</span>
+                </div>
+              </div>
+            </div>
 
-          <!-- 单图风格参数 -->
-          <template v-if="styleConfig.style.startsWith('single')">
-            <n-form-item label="模糊程度">
-              <n-slider v-model:value="styleParams.single.blur_size" :min="0" :max="100" :step="5" style="width: 300px;" />
+            <n-form label-placement="left" label-width="120" style="max-width: 500px;">
+              <n-form-item label="排序方式">
+                <n-select v-model:value="styleConfig.sort_by" :options="sortByOptions" />
+              </n-form-item>
+              <n-form-item label="保存到本地">
+                <n-switch v-model:value="styleConfig.save_to_local" />
+              </n-form-item>
+              <n-form-item label="输出目录" v-if="styleConfig.save_to_local">
+                <n-input v-model:value="styleConfig.output_dir" placeholder="covers_output" />
+              </n-form-item>
+            </n-form>
+          </n-space>
+        </n-tab-pane>
+
+        <!-- 封面标题 -->
+        <n-tab-pane name="titles" tab="封面标题">
+          <n-space vertical :size="16">
+            <p style="color: #999;">为每个媒体库设置自定义中英文标题，留空则使用媒体库名称作为标题。</p>
+            <n-button @click="addTitle" type="primary" dashed size="small">
+              <template #icon><n-icon :component="AddOutline" /></template>
+              添加标题
+            </n-button>
+            <n-table :bordered="false" :single-line="false" size="small" v-if="titleList.length > 0">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">媒体库名称</th>
+                  <th style="width: 30%;">中文标题</th>
+                  <th style="width: 30%;">英文标题</th>
+                  <th style="width: 15%;">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in titleList" :key="index">
+                  <td>
+                    <n-input v-model:value="item.key" placeholder="媒体库名称" size="small" />
+                  </td>
+                  <td>
+                    <n-input v-model:value="item.zh" placeholder="中文标题" size="small" />
+                  </td>
+                  <td>
+                    <n-input v-model:value="item.en" placeholder="ENGLISH TITLE" size="small" />
+                  </td>
+                  <td>
+                    <n-button size="small" type="error" quaternary @click="removeTitle(index)">删除</n-button>
+                  </td>
+                </tr>
+              </tbody>
+            </n-table>
+            <n-empty v-else description="暂无自定义标题，将使用媒体库名称" />
+          </n-space>
+        </n-tab-pane>
+
+        <!-- 单图风格设置 -->
+        <n-tab-pane name="single_params" tab="单图风格设置">
+          <n-form label-placement="left" label-width="140" style="max-width: 500px;">
+            <n-form-item label="背景模糊程度">
+              <n-slider v-model:value="styleParams.single.blur_size" :min="0" :max="100" :step="5" />
               <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.blur_size }}</span>
             </n-form-item>
-            <n-form-item label="颜色比例">
-              <n-slider v-model:value="styleParams.single.color_ratio" :min="0" :max="1" :step="0.1" style="width: 300px;" />
+            <n-form-item label="背景颜色比例">
+              <n-slider v-model:value="styleParams.single.color_ratio" :min="0" :max="1" :step="0.1" />
               <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.single.color_ratio }}</span>
             </n-form-item>
             <n-form-item label="优先使用海报图">
               <n-switch v-model:value="styleParams.single.use_primary" />
               <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
             </n-form-item>
-          </template>
+          </n-form>
+        </n-tab-pane>
 
-          <!-- 多图风格参数 -->
-          <template v-else>
-            <n-form-item label="启用模糊">
+        <!-- 多图风格设置 -->
+        <n-tab-pane name="multi_params" tab="多图风格设置">
+          <n-form label-placement="left" label-width="140" style="max-width: 500px;">
+            <n-form-item label="启用背景模糊">
               <n-switch v-model:value="styleParams.multi_1.blur" />
             </n-form-item>
-            <n-form-item label="模糊程度" v-if="styleParams.multi_1.blur">
-              <n-slider v-model:value="styleParams.multi_1.blur_size" :min="0" :max="100" :step="5" style="width: 300px;" />
+            <n-form-item label="背景模糊程度" v-if="styleParams.multi_1.blur">
+              <n-slider v-model:value="styleParams.multi_1.blur_size" :min="0" :max="100" :step="5" />
               <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.blur_size }}</span>
             </n-form-item>
-            <n-form-item label="颜色比例">
-              <n-slider v-model:value="styleParams.multi_1.color_ratio" :min="0" :max="1" :step="0.1" style="width: 300px;" />
+            <n-form-item label="背景颜色比例">
+              <n-slider v-model:value="styleParams.multi_1.color_ratio" :min="0" :max="1" :step="0.1" />
               <span style="margin-left: 12px; min-width: 40px;">{{ styleParams.multi_1.color_ratio }}</span>
             </n-form-item>
             <n-form-item label="优先使用海报图">
               <n-switch v-model:value="styleParams.multi_1.use_primary" />
               <span style="margin-left: 8px; color: #999; font-size: 13px;">关闭则优先使用背景图</span>
             </n-form-item>
-          </template>
+          </n-form>
+        </n-tab-pane>
 
-          <n-form-item label="保存到本地">
-            <n-switch v-model:value="styleConfig.save_to_local" />
-          </n-form-item>
-          <n-form-item label="输出目录" v-if="styleConfig.save_to_local">
-            <n-input v-model:value="styleConfig.output_dir" placeholder="covers_output" style="width: 300px;" />
-          </n-form-item>
-        </n-form>
-
-        <n-space>
-          <n-button type="primary" @click="handleSaveConfig" :loading="saving" :disabled="!hasChanges">
-            <template #icon><n-icon :component="SaveOutline" /></template>
-            保存配置
-          </n-button>
-          <n-tag v-if="hasChanges" type="warning">有未保存的更改</n-tag>
-        </n-space>
-      </n-space>
-    </n-card>
-
-    <!-- 预览与应用 -->
-    <n-card title="封面预览与应用">
-      <n-space vertical :size="16">
-        <n-grid :cols="2" :x-gap="16">
-          <n-gi>
-            <n-form-item label="选择服务器">
-              <n-select
-                v-model:value="previewServer"
-                :options="serverOptions"
-                placeholder="请选择服务器"
-                @update:value="loadLibraries"
-              />
-            </n-form-item>
-          </n-gi>
-          <n-gi>
-            <n-form-item label="选择媒体库">
-              <n-select
-                v-model:value="selectedLibraries"
-                :options="libraryOptions"
-                placeholder="留空表示全部媒体库"
-                multiple
-                clearable
-                :loading="loadingLibraries"
-              />
-            </n-form-item>
-          </n-gi>
-        </n-grid>
-
-        <n-space>
-          <n-button type="primary" @click="handlePreview" :loading="previewing" :disabled="!previewServer">
-            <template #icon><n-icon :component="EyeOutline" /></template>
-            生成预览
-          </n-button>
-          <n-button
-            type="success"
-            @click="handleApply"
-            :loading="applying"
-            :disabled="!previewServer"
-          >
-            <template #icon><n-icon :component="CheckmarkOutline" /></template>
-            {{ applyButtonText }}
-          </n-button>
-        </n-space>
-
-        <n-spin :show="previewing">
-          <div class="preview-container" v-if="previewImage">
-            <n-image
-              :src="'data:image/jpeg;base64,' + previewImage"
-              object-fit="contain"
-              style="max-width: 100%; max-height: 400px;"
-            />
-          </div>
-          <n-empty v-else description="点击「生成预览」查看效果" style="padding: 60px 0;" />
-        </n-spin>
-      </n-space>
-    </n-card>
-
-    <!-- 风格说明 -->
-    <n-card title="风格说明" size="small">
-      <n-space vertical size="large">
-        <n-card title="单图风格 1 (single_1)" size="small" :bordered="false">
-          <p>旋转卡片风格，使用单张图片生成带有 3D 旋转效果的封面</p>
-          <n-tag type="success">推荐</n-tag>
-        </n-card>
-        <n-card title="单图风格 2 (single_2)" size="small" :bordered="false">
-          <p>简约风格，使用单张图片生成简洁的封面</p>
-        </n-card>
-        <n-card title="多图风格 (multi_1)" size="small" :bordered="false">
-          <p>将多张海报以旋转列形式排列在渐变背景上，展示媒体库丰富内容</p>
-          <n-tag type="info">需要至少 9 张图片</n-tag>
-        </n-card>
-      </n-space>
+        <!-- 应用 -->
+        <n-tab-pane name="apply" tab="应用封面">
+          <n-space vertical :size="16">
+            <n-form label-placement="left" label-width="120" style="max-width: 600px;">
+              <n-form-item label="选择服务器">
+                <n-select
+                  v-model:value="applyServer"
+                  :options="serverOptions"
+                  placeholder="请选择服务器"
+                  @update:value="loadLibraries"
+                />
+              </n-form-item>
+              <n-form-item label="选择媒体库">
+                <n-select
+                  v-model:value="selectedLibraries"
+                  :options="libraryOptions"
+                  placeholder="留空表示全部媒体库"
+                  multiple
+                  clearable
+                  :loading="loadingLibraries"
+                />
+              </n-form-item>
+            </n-form>
+            <n-button
+              type="success"
+              @click="handleApply"
+              :loading="applying"
+              :disabled="!applyServer"
+            >
+              <template #icon><n-icon :component="CheckmarkOutline" /></template>
+              {{ applyButtonText }}
+            </n-button>
+          </n-space>
+        </n-tab-pane>
+      </n-tabs>
     </n-card>
   </n-space>
 </template>
@@ -153,42 +172,43 @@ import { ref, computed, onMounted } from 'vue'
 import {
   NSpace,
   NCard,
-  NGrid,
-  NGi,
+  NTabs,
+  NTabPane,
   NForm,
   NFormItem,
   NInput,
   NSelect,
   NSlider,
   NSwitch,
-  NRadioGroup,
-  NRadioButton,
+  NRadio,
   NButton,
   NIcon,
-  NSpin,
-  NImage,
-  NEmpty,
   NTag,
-  NDivider,
+  NTable,
+  NEmpty,
   useMessage
 } from 'naive-ui'
-import { EyeOutline, CheckmarkOutline, SaveOutline } from '@vicons/ionicons5'
+import { SaveOutline, CheckmarkOutline, AddOutline } from '@vicons/ionicons5'
 import { api } from '@/api/client'
 
 const message = useMessage()
-const loading = ref(false)
-const previewing = ref(false)
-const applying = ref(false)
 const saving = ref(false)
+const applying = ref(false)
 const loadingLibraries = ref(false)
 
 const servers = ref([])
 const libraries = ref([])
-const previewServer = ref(null)
+const applyServer = ref(null)
 const selectedLibraries = ref([])
-const previewImage = ref(null)
 
-// 风格配置（可编辑）
+// 风格示例图
+const styleList = [
+  { value: 'single_1', label: '单图 1', image: '/images/single_1.jpg' },
+  { value: 'single_2', label: '单图 2', image: '/images/single_2.jpg' },
+  { value: 'multi_1', label: '多图 1', image: '/images/multi_1.jpg' }
+]
+
+// 风格配置
 const styleConfig = ref({
   style: 'single_1',
   sort_by: 'Random',
@@ -201,18 +221,23 @@ const styleParams = ref({
   multi_1: { blur: false, blur_size: 50, color_ratio: 0.8, use_primary: true }
 })
 
-// 原始配置，用于检测变更
+// 标题配置 (转为数组方便编辑)
+const titleList = ref([])
+
+// 原始配置
 const originalStyleConfig = ref(null)
 const originalStyleParams = ref(null)
+const originalTitleList = ref(null)
 
 const hasChanges = computed(() => {
   return JSON.stringify(styleConfig.value) !== JSON.stringify(originalStyleConfig.value) ||
-    JSON.stringify(styleParams.value) !== JSON.stringify(originalStyleParams.value)
+    JSON.stringify(styleParams.value) !== JSON.stringify(originalStyleParams.value) ||
+    JSON.stringify(titleList.value) !== JSON.stringify(originalTitleList.value)
 })
 
 const sortByOptions = [
   { label: '随机', value: 'Random' },
-  { label: '创建日期', value: 'DateCreated' },
+  { label: '最新入库', value: 'DateCreated' },
   { label: '名称', value: 'SortName' }
 ]
 
@@ -225,19 +250,39 @@ const libraryOptions = computed(() =>
 )
 
 const applyButtonText = computed(() => {
-  if (selectedLibraries.value.length === 0) {
-    return '应用到全部媒体库'
-  }
+  if (selectedLibraries.value.length === 0) return '应用到全部媒体库'
   return `应用到 ${selectedLibraries.value.length} 个媒体库`
 })
 
-function onStyleChange() {
-  // 切换风格时清除预览
-  previewImage.value = null
+function addTitle() {
+  titleList.value.push({ key: '', zh: '', en: '' })
+}
+
+function removeTitle(index) {
+  titleList.value.splice(index, 1)
+}
+
+// titles object <-> titleList array 转换
+function titlesToList(titles) {
+  if (!titles || typeof titles !== 'object') return []
+  return Object.entries(titles).map(([key, val]) => ({
+    key,
+    zh: val.zh || '',
+    en: val.en || ''
+  }))
+}
+
+function listToTitles(list) {
+  const result = {}
+  for (const item of list) {
+    if (item.key.trim()) {
+      result[item.key.trim()] = { zh: item.zh, en: item.en }
+    }
+  }
+  return result
 }
 
 async function loadData() {
-  loading.value = true
   try {
     const [fullConfig, serversData] = await Promise.all([
       api.getFullConfig(),
@@ -245,7 +290,6 @@ async function loadData() {
     ])
     servers.value = serversData.servers || []
 
-    // 加载风格配置
     if (fullConfig.cover) {
       styleConfig.value = {
         style: fullConfig.cover.style || 'single_1',
@@ -260,26 +304,25 @@ async function loadData() {
         multi_1: { ...styleParams.value.multi_1, ...fullConfig.style_params.multi_1 }
       }
     }
+    titleList.value = titlesToList(fullConfig.titles)
 
-    // 记录原始值
+    // 快照原始值
     originalStyleConfig.value = JSON.parse(JSON.stringify(styleConfig.value))
     originalStyleParams.value = JSON.parse(JSON.stringify(styleParams.value))
+    originalTitleList.value = JSON.parse(JSON.stringify(titleList.value))
   } catch (error) {
     message.error('加载数据失败: ' + error.message)
-  } finally {
-    loading.value = false
   }
 }
 
 async function loadLibraries() {
-  if (!previewServer.value) {
+  if (!applyServer.value) {
     libraries.value = []
     return
   }
-
   loadingLibraries.value = true
   try {
-    const data = await api.getServerLibraries(previewServer.value)
+    const data = await api.getServerLibraries(applyServer.value)
     libraries.value = data.libraries || []
     selectedLibraries.value = []
   } catch (error) {
@@ -293,22 +336,20 @@ async function loadLibraries() {
 async function handleSaveConfig() {
   saving.value = true
   try {
-    // 获取完整配置，合并修改的部分
     const fullConfig = await api.getFullConfig()
-    fullConfig.cover = {
-      ...fullConfig.cover,
-      ...styleConfig.value
-    }
+    fullConfig.cover = { ...fullConfig.cover, ...styleConfig.value }
     fullConfig.style_params = {
       ...fullConfig.style_params,
       single: { ...styleParams.value.single },
       multi_1: { ...styleParams.value.multi_1 }
     }
+    fullConfig.titles = listToTitles(titleList.value)
 
     await api.saveConfig(fullConfig)
     message.success('配置已保存')
     originalStyleConfig.value = JSON.parse(JSON.stringify(styleConfig.value))
     originalStyleParams.value = JSON.parse(JSON.stringify(styleParams.value))
+    originalTitleList.value = JSON.parse(JSON.stringify(titleList.value))
   } catch (error) {
     message.error('保存失败: ' + error.message)
   } finally {
@@ -316,60 +357,28 @@ async function handleSaveConfig() {
   }
 }
 
-async function handlePreview() {
-  if (!previewServer.value) {
-    message.warning('请选择服务器')
-    return
-  }
-
-  previewing.value = true
-  previewImage.value = null
-  try {
-    // 使用当前编辑的风格参数作为 override
-    const configOverride = {
-      cover: { style: styleConfig.value.style, sort_by: styleConfig.value.sort_by },
-      style_params: styleParams.value
-    }
-
-    // 预览时使用第一个选中的媒体库，未选择则传 null（使用第一个可用的）
-    const libraryName = selectedLibraries.value.length > 0
-      ? selectedLibraries.value[0]
-      : null
-
-    const result = await api.previewCover(
-      previewServer.value,
-      libraryName,
-      configOverride
-    )
-    previewImage.value = result.preview_base64
-    message.success('预览生成成功')
-  } catch (error) {
-    message.error('生成预览失败: ' + error.message)
-  } finally {
-    previewing.value = false
-  }
-}
-
 async function handleApply() {
-  if (!previewServer.value) {
+  if (!applyServer.value) {
     message.warning('请选择服务器')
     return
+  }
+
+  // 如果有未保存的更改，先保存
+  if (hasChanges.value) {
+    await handleSaveConfig()
   }
 
   applying.value = true
   try {
     if (selectedLibraries.value.length === 0) {
-      // 未选择 = 全部媒体库
-      await api.generateCover(previewServer.value, null)
+      await api.generateCover(applyServer.value, null)
       message.success('已启动全部媒体库封面生成')
     } else if (selectedLibraries.value.length === 1) {
-      // 单个媒体库
-      await api.generateCover(previewServer.value, selectedLibraries.value[0])
+      await api.generateCover(applyServer.value, selectedLibraries.value[0])
       message.success('封面生成任务已启动')
     } else {
-      // 多个媒体库，使用批量接口
       const targets = selectedLibraries.value.map(name => ({
-        server_name: previewServer.value,
+        server_name: applyServer.value,
         library_name: name
       }))
       await api.createBatch(targets)
@@ -388,13 +397,43 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.preview-container {
+.style-cards {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  background: rgba(0, 0, 0, 0.2);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.style-card {
+  cursor: pointer;
+  border: 2px solid transparent;
   border-radius: 8px;
-  padding: 16px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(255, 255, 255, 0.05);
+  width: 220px;
+}
+
+.style-card:hover {
+  border-color: rgba(99, 226, 183, 0.5);
+}
+
+.style-card.active {
+  border-color: #63e2b7;
+  box-shadow: 0 0 12px rgba(99, 226, 183, 0.3);
+}
+
+.style-image {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+}
+
+.style-label {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
 }
 </style>
