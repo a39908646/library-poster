@@ -96,11 +96,6 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.get("/")
-async def root():
-    return {"message": "Library Poster API", "version": "1.0.0"}
-
-
 # Serve frontend static files (if exists)
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
