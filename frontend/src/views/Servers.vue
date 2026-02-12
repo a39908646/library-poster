@@ -3,15 +3,25 @@
     <!-- Webhook 提示 -->
     <n-card title="Webhook 配置">
       <n-alert type="info" :show-icon="true">
-        <template #header>在 Emby/Jellyfin 中配置 Webhook</template>
+        <template #header>在 Emby/Jellyfin 中配置 Webhook（媒体入库自动更新封面）</template>
         <n-space vertical>
-          <div>1. 安装 Webhook 插件</div>
-          <div>2. 配置 Webhook URL（根据服务器类型选择）：</div>
-          <n-space vertical style="margin-left: 16px;">
-            <n-tag type="success">Emby: <n-text code>{{ webhookUrl }}/webhook/emby</n-text></n-tag>
-            <n-tag type="info">Jellyfin: <n-text code>{{ webhookUrl }}/webhook/jellyfin</n-text></n-tag>
-          </n-space>
-          <div>3. 选择事件类型：library.new, item.added</div>
+          <div><strong>1. 安装 Webhook 插件</strong>（Emby 插件目录搜索 Webhook）</div>
+          <div><strong>2. 添加 Webhook，配置如下：</strong></div>
+          <n-descriptions bordered :column="1" size="small" style="margin: 8px 0;">
+            <n-descriptions-item label="网址">
+              <n-text code>{{ webhookUrl }}/webhook/emby</n-text>
+              <n-text depth="3">（Jellyfin 用 /webhook/jellyfin）</n-text>
+            </n-descriptions-item>
+            <n-descriptions-item label="请求内容类型">
+              <n-tag type="success">application/json</n-tag>
+            </n-descriptions-item>
+            <n-descriptions-item label="事件类型">
+              <n-space>
+                <n-tag type="info">✓ 媒体库 - 已添加新媒体</n-tag>
+              </n-space>
+            </n-descriptions-item>
+          </n-descriptions>
+          <div><strong>3. 保存后点击"发送测试通知"验证</strong></div>
         </n-space>
       </n-alert>
     </n-card>
@@ -128,6 +138,8 @@ import {
   NRadioGroup,
   NRadioButton,
   NDynamicTags,
+  NDescriptions,
+  NDescriptionsItem,
   useMessage,
   useDialog
 } from 'naive-ui'
