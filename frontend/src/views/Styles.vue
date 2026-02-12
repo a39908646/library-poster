@@ -187,11 +187,12 @@ async function loadLibraries() {
 
   loadingLibraries.value = true
   try {
-    // 暂时使用服务器信息，实际需要后端提供 libraries API
-    libraries.value = []
+    const data = await api.getServerLibraries(previewServer.value)
+    libraries.value = data.libraries || []
     previewLibrary.value = null
   } catch (error) {
     message.error('加载媒体库失败: ' + error.message)
+    libraries.value = []
   } finally {
     loadingLibraries.value = false
   }

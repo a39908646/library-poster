@@ -102,6 +102,10 @@ export const api = {
     return client.get('/status/servers')
   },
 
+  getServerLibraries(serverName) {
+    return client.get(`/status/servers/${encodeURIComponent(serverName)}/libraries`)
+  },
+
   // 健康检查
   healthCheck() {
     return axios.get('/health')

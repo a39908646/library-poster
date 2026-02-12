@@ -18,7 +18,7 @@ from app.services.job_manager import JobManager
 from app.webhook.handlers import router as webhook_router, set_cover_service
 from app.api.config import router as config_router
 from app.api.generate import router as generate_router, set_cover_service as set_api_service
-from app.api.status import router as status_router
+from app.api.status import router as status_router, set_cover_service as set_status_service
 from app.api.preview import router as preview_router, set_cover_service as set_preview_service
 from app.api.batch import router as batch_router, set_job_manager
 
@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):
     set_cover_service(cover_service)
     set_api_service(cover_service)
     set_preview_service(cover_service)
+    set_status_service(cover_service)
     set_job_manager(job_manager)
 
     logger.info("Application started")
