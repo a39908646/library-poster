@@ -7,6 +7,76 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml
 
+# 配置文件路径，优先使用环境变量
+CONFIG_PATH = os.getenv("CONFIG_PATH", "config/config.yaml")
+
+DEFAULT_CONFIG = """# Library Poster 配置文件
+app:
+  timezone: Asia/Shanghai
+  data_dir: ./data
+  log_level: INFO
+
+servers: []
+  # - name: "我的Emby"
+  #   type: "emby"
+  #   url: "http://192.168.1.100:8096"
+  #   api_key: "your_api_key"
+  #   exclude_libraries: []
+
+cover:
+  style: "single_1"
+  sort_by: "Random"
+  save_to_local: false
+  output_dir: "covers_output"
+  custom_images_dir: ""
+
+fonts:
+  main:
+    zh_url: ""
+    en_url: ""
+    zh_local: ""
+    en_local: ""
+    zh_size: 1.0
+    en_size: 1.0
+  multi_1:
+    zh_url: ""
+    en_url: ""
+    zh_local: ""
+    en_local: ""
+    zh_size: 1.0
+    en_size: 1.0
+
+style_params:
+  single:
+    blur_size: 50
+    color_ratio: 0.8
+    use_primary: false
+  multi_1:
+    blur: false
+    blur_size: 50
+    color_ratio: 0.8
+    use_primary: true
+
+titles: {}
+
+scheduler:
+  enabled: false
+  cron: "0 2 * * *"
+
+webhook:
+  enabled: true
+  delay: 60
+
+network:
+  proxy: ""
+  github_proxy: ""
+  timeout: 30
+  retries: 3
+
+performance:
+  max_concurrent: 3
+"""
+
 
 class AppConfig(BaseModel):
     timezone: str = "Asia/Shanghai"
@@ -107,11 +177,17 @@ class Config(BaseSettings):
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
 
     @classmethod
-    def load_from_yaml(cls, config_path: str = "config.yaml") -> "Config":
-        """从 YAML 文件加载配置"""
+    def load_from_yaml(cls, config_path: str = None) -> "Config":
+        """从 YAML 文件加载配置，不存在则自动创建默认配置"""
+        if config_path is None:
+            config_path = CONFIG_PATH
         config_file = Path(config_path)
+
+        # 配置文件不存在时自动创建
         if not config_file.exists():
-            raise FileNotFoundError(f"配置文件不存在: {config_path}")
+            config_file.parent.mkdir(parents=True, exist_ok=True)
+            config_file.write_text(DEFAULT_CONFIG, encoding="utf-8")
+            logging.getLogger(__name__).info(f"已创建默认配置文件: {config_path}")
 
         with open(config_file, "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f)
@@ -180,7 +256,7 @@ def get_config() -> Config:
 def reload_config():
     """重新加载配置并通知所有回调"""
     global _config
-    _config = Config.load_from_yaml()
+    _config = Config.load_from_yaml(CONFIG_PATH)
     _config.setup_logging()
     for callback in _reload_callbacks:
         try:
@@ -202,28 +278,38 @@ def unregister_config_reload_callback(callback: callable):
         _reload_callbacks.remove(callback)
 
 
-def write_config_atomically(config_data: Dict, config_path: str = "config.yaml"):
-    """原子写入配置文件"""
+def write_config_atomically(config_data: Dict, config_path: str = None):
+    """写入配置文件，优先原子写入，失败则直接写入"""
     import shutil
     import tempfile
 
+    if config_path is None:
+        config_path = CONFIG_PATH
+
     config_file = Path(config_path)
+    config_file.parent.mkdir(parents=True, exist_ok=True)
     backup_file = config_file.with_suffix(".yaml.bak")
 
     # 备份现有配置
     if config_file.exists():
         shutil.copy2(config_file, backup_file)
 
-    # 写入临时文件
-    fd, temp_path = tempfile.mkstemp(suffix=".yaml", dir=config_file.parent)
+    # 尝试原子写入
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
+        fd, temp_path = tempfile.mkstemp(suffix=".yaml", dir=config_file.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                f.flush()
+                os.fsync(f.fileno())
+            Path(temp_path).replace(config_file)
+            return
+        except OSError:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise
+    except OSError:
+        # 原子写入失败（如 Docker 挂载），回退到直接写入
+        logging.getLogger(__name__).warning("原子写入失败，回退到直接写入")
+        with open(config_file, "w", encoding="utf-8") as f:
             yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-            f.flush()
-            os.fsync(f.fileno())
-        # 原子替换
-        Path(temp_path).replace(config_file)
-    except Exception:
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
-        raise

@@ -32,8 +32,8 @@ COPY app/ ./app/
 # Copy frontend build
 COPY --from=frontend-builder /build/app/static ./app/static
 
-# Create data directory
-RUN mkdir -p /app/data
+# Create config and data directories
+RUN mkdir -p /app/config /app/data
 
 # Expose port
 EXPOSE 8000
