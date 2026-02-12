@@ -123,41 +123,6 @@
             <n-empty v-else description="暂无自定义标题，将使用媒体库名称" />
           </n-space>
         </n-tab-pane>
-
-        <!-- 应用封面 -->
-        <n-tab-pane name="apply" tab="应用封面">
-          <n-space vertical :size="16">
-            <n-form label-placement="left" label-width="120" style="max-width: 600px;">
-              <n-form-item label="选择服务器">
-                <n-select
-                  v-model:value="applyServer"
-                  :options="serverOptions"
-                  placeholder="请选择服务器"
-                  @update:value="loadLibraries"
-                />
-              </n-form-item>
-              <n-form-item label="选择媒体库">
-                <n-select
-                  v-model:value="selectedLibraries"
-                  :options="libraryOptions"
-                  placeholder="留空表示全部媒体库"
-                  multiple
-                  clearable
-                  :loading="loadingLibraries"
-                />
-              </n-form-item>
-            </n-form>
-            <n-button
-              type="success"
-              @click="handleApply"
-              :loading="applying"
-              :disabled="!applyServer"
-            >
-              <template #icon><n-icon :component="CheckmarkOutline" /></template>
-              {{ applyButtonText }}
-            </n-button>
-          </n-space>
-        </n-tab-pane>
       </n-tabs>
     </n-card>
   </n-space>
@@ -184,18 +149,11 @@ import {
   NEmpty,
   useMessage
 } from 'naive-ui'
-import { SaveOutline, CheckmarkOutline, AddOutline } from '@vicons/ionicons5'
+import { SaveOutline, AddOutline } from '@vicons/ionicons5'
 import { api } from '@/api/client'
 
 const message = useMessage()
 const saving = ref(false)
-const applying = ref(false)
-const loadingLibraries = ref(false)
-
-const servers = ref([])
-const libraries = ref([])
-const applyServer = ref(null)
-const selectedLibraries = ref([])
 
 // 风格示例图
 const styleList = [
@@ -237,19 +195,6 @@ const sortByOptions = [
   { label: '名称', value: 'SortName' }
 ]
 
-const serverOptions = computed(() =>
-  servers.value.map(s => ({ label: s.name, value: s.name }))
-)
-
-const libraryOptions = computed(() =>
-  libraries.value.map(l => ({ label: l.Name, value: l.Name }))
-)
-
-const applyButtonText = computed(() => {
-  if (selectedLibraries.value.length === 0) return '应用到全部媒体库'
-  return `应用到 ${selectedLibraries.value.length} 个媒体库`
-})
-
 function addTitle() {
   titleList.value.push({ key: '', zh: '', en: '' })
 }
@@ -280,11 +225,7 @@ function listToTitles(list) {
 
 async function loadData() {
   try {
-    const [fullConfig, serversData] = await Promise.all([
-      api.getFullConfig(),
-      api.getServers()
-    ])
-    servers.value = serversData.servers || []
+    const fullConfig = await api.getFullConfig()
 
     if (fullConfig.cover) {
       styleConfig.value = {
@@ -311,24 +252,6 @@ async function loadData() {
   }
 }
 
-async function loadLibraries() {
-  if (!applyServer.value) {
-    libraries.value = []
-    return
-  }
-  loadingLibraries.value = true
-  try {
-    const data = await api.getServerLibraries(applyServer.value)
-    libraries.value = data.libraries || []
-    selectedLibraries.value = []
-  } catch (error) {
-    message.error('加载媒体库失败: ' + error.message)
-    libraries.value = []
-  } finally {
-    loadingLibraries.value = false
-  }
-}
-
 async function handleSaveConfig() {
   saving.value = true
   try {
@@ -350,40 +273,6 @@ async function handleSaveConfig() {
     message.error('保存失败: ' + error.message)
   } finally {
     saving.value = false
-  }
-}
-
-async function handleApply() {
-  if (!applyServer.value) {
-    message.warning('请选择服务器')
-    return
-  }
-
-  // 如果有未保存的更改，先保存
-  if (hasChanges.value) {
-    await handleSaveConfig()
-  }
-
-  applying.value = true
-  try {
-    if (selectedLibraries.value.length === 0) {
-      await api.generateCover(applyServer.value, null)
-      message.success('已启动全部媒体库封面生成')
-    } else if (selectedLibraries.value.length === 1) {
-      await api.generateCover(applyServer.value, selectedLibraries.value[0])
-      message.success('封面生成任务已启动')
-    } else {
-      const targets = selectedLibraries.value.map(name => ({
-        server_name: applyServer.value,
-        library_name: name
-      }))
-      await api.createBatch(targets)
-      message.success(`已启动 ${targets.length} 个媒体库封面生成`)
-    }
-  } catch (error) {
-    message.error('启动生成任务失败: ' + error.message)
-  } finally {
-    applying.value = false
   }
 }
 
