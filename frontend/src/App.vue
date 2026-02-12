@@ -1,7 +1,8 @@
 <template>
   <n-config-provider :theme="darkTheme">
-    <n-message-provider>
-      <n-layout style="height: 100vh">
+    <n-dialog-provider>
+      <n-message-provider>
+        <n-layout style="height: 100vh">
       <n-layout-header bordered style="height: 64px; padding: 0 24px; display: flex; align-items: center;">
         <div style="display: flex; align-items: center; gap: 16px;">
           <h2 style="margin: 0;">📚 Library Poster</h2>
@@ -41,7 +42,8 @@
         </n-layout-content>
       </n-layout>
     </n-layout>
-    </n-message-provider>
+      </n-message-provider>
+    </n-dialog-provider>
   </n-config-provider>
 </template>
 
@@ -50,6 +52,7 @@ import { ref, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   NConfigProvider,
+  NDialogProvider,
   NMessageProvider,
   NLayout,
   NLayoutHeader,
@@ -95,7 +98,7 @@ const menuOptions = [
     icon: () => h(NIcon, null, { default: () => h(ColorPaletteOutline) })
   },
   {
-    label: '定时任务',
+    label: '系统设置',
     key: 'config',
     icon: () => h(NIcon, null, { default: () => h(SettingsOutline) })
   },
