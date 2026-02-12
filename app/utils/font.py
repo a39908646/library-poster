@@ -77,11 +77,21 @@ class FontManager:
 
             logger.info(f"Downloading font from: {url}")
             try:
-                download_url = apply_github_proxy(url, self.config.network.github_proxy)
-                self._download_font(download_url, cache_path)
+                # 先直接下载（通过 session 配置的 HTTP 代理）
+                self._download_font(url, cache_path)
                 return str(cache_path)
-            except Exception as e:
-                logger.error(f"Failed to download font: {e}")
+            except Exception:
+                # 如果配置了 github_proxy 镜像，再尝试通过镜像下载
+                if self.config.network.github_proxy:
+                    try:
+                        mirror_url = apply_github_proxy(url, self.config.network.github_proxy)
+                        logger.info(f"Retrying with github_proxy: {mirror_url}")
+                        self._download_font(mirror_url, cache_path)
+                        return str(cache_path)
+                    except Exception as e:
+                        logger.error(f"Failed to download font via mirror: {e}")
+                else:
+                    logger.error(f"Failed to download font: {url}")
 
         # 使用默认字体（系统字体）
         logger.warning("No font available, using system default")
