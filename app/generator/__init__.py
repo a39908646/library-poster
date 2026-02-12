@@ -34,8 +34,9 @@ def generate_cover(
         if style == "single_1":
             params = config.style_params.single
             font_size = (config.fonts.main.zh_size, config.fonts.main.en_size)
+            image_path = library_dir / "1.jpg"
             return create_style_single_1(
-                str(library_dir),
+                str(image_path),
                 title,
                 font_paths,
                 font_size=font_size,
@@ -45,8 +46,9 @@ def generate_cover(
         elif style == "single_2":
             params = config.style_params.single
             font_size = (config.fonts.main.zh_size, config.fonts.main.en_size)
+            image_path = library_dir / "1.jpg"
             return create_style_single_2(
-                str(library_dir),
+                str(image_path),
                 title,
                 font_paths,
                 font_size=font_size,

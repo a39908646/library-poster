@@ -244,7 +244,7 @@ class CoverService:
         required_count = 1 if config.cover.style.startswith("single") else 9
 
         # 清理旧图片
-        for existing in library_dir.glob("image_*.jpg"):
+        for existing in library_dir.glob("*.jpg"):
             existing.unlink(missing_ok=True)
 
         # 获取媒体项
@@ -290,8 +290,8 @@ class CoverService:
                     retries=config.network.retries
                 )
 
-                # 保存图片
-                image_file = library_dir / f"image_{downloaded}.jpg"
+                # 保存图片（文件名从 1 开始：1.jpg, 2.jpg, ...）
+                image_file = library_dir / f"{downloaded + 1}.jpg"
                 image_file.write_bytes(image_bytes)
                 downloaded += 1
 
