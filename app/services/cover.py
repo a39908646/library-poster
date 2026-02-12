@@ -304,7 +304,7 @@ class CoverService:
         return downloaded >= required_count
 
     def _get_image_url(self, client, item: Dict[str, Any], config: Config) -> Optional[str]:
-        """获取媒体项的图片 URL"""
+        """获取媒体项的图片 URL（返回完整绝对 URL）"""
         item_id = item.get("Id")
         if not item_id:
             return None
@@ -316,18 +316,26 @@ class CoverService:
             else config.style_params.multi_1.use_primary
         )
 
+        path = None
         if not use_primary:
             # 尝试背景图
             if item.get("BackdropImageTags") and len(item["BackdropImageTags"]) > 0:
                 tag = item["BackdropImageTags"][0]
-                return client._path(f"/Items/{item_id}/Images/Backdrop/0?tag={tag}")
+                path = client._path(f"/Items/{item_id}/Images/Backdrop/0?tag={tag}")
 
-        # 使用海报图
-        if item.get("ImageTags", {}).get("Primary"):
-            tag = item["ImageTags"]["Primary"]
-            return client._path(f"/Items/{item_id}/Images/Primary?tag={tag}")
+        if path is None:
+            # 使用海报图
+            if item.get("ImageTags", {}).get("Primary"):
+                tag = item["ImageTags"]["Primary"]
+                path = client._path(f"/Items/{item_id}/Images/Primary?tag={tag}")
 
-        return None
+        if path is None:
+            return None
+
+        # 拼接完整 URL（base_url + path + api_key）
+        url = f"{client.base_url}{path}"
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}api_key={client.api_key}"
 
     def _get_library_title(self, library_name: str, config: Optional[Config] = None) -> Tuple[str, str]:
         """获取媒体库标题（中文、英文）"""

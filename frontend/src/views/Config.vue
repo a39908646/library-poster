@@ -70,60 +70,6 @@
             </n-space>
           </n-tab-pane>
 
-          <!-- 封面配置 -->
-          <n-tab-pane name="cover" tab="封面">
-            <n-form label-placement="left" label-width="120">
-              <n-form-item label="封面风格">
-                <n-radio-group v-model:value="config.cover.style">
-                  <n-radio-button value="single_1">单图风格 1</n-radio-button>
-                  <n-radio-button value="single_2">单图风格 2</n-radio-button>
-                  <n-radio-button value="multi_1">九宫格</n-radio-button>
-                </n-radio-group>
-              </n-form-item>
-              <n-form-item label="排序方式">
-                <n-select v-model:value="config.cover.sort_by" :options="sortByOptions" />
-              </n-form-item>
-              <n-form-item label="保存到本地">
-                <n-switch v-model:value="config.cover.save_to_local" />
-              </n-form-item>
-              <n-form-item label="输出目录" v-if="config.cover.save_to_local">
-                <n-input v-model:value="config.cover.output_dir" placeholder="covers_output" />
-              </n-form-item>
-            </n-form>
-          </n-tab-pane>
-
-          <!-- 风格参数 -->
-          <n-tab-pane name="style_params" tab="风格参数">
-            <n-divider title-placement="left">单图风格参数</n-divider>
-            <n-form label-placement="left" label-width="120">
-              <n-form-item label="模糊程度">
-                <n-slider v-model:value="config.style_params.single.blur_size" :min="0" :max="100" :step="5" />
-              </n-form-item>
-              <n-form-item label="颜色比例">
-                <n-slider v-model:value="config.style_params.single.color_ratio" :min="0" :max="1" :step="0.1" />
-              </n-form-item>
-              <n-form-item label="优先海报">
-                <n-switch v-model:value="config.style_params.single.use_primary" />
-              </n-form-item>
-            </n-form>
-
-            <n-divider title-placement="left">九宫格风格参数</n-divider>
-            <n-form label-placement="left" label-width="120">
-              <n-form-item label="启用模糊">
-                <n-switch v-model:value="config.style_params.multi_1.blur" />
-              </n-form-item>
-              <n-form-item label="模糊程度" v-if="config.style_params.multi_1.blur">
-                <n-slider v-model:value="config.style_params.multi_1.blur_size" :min="0" :max="100" :step="5" />
-              </n-form-item>
-              <n-form-item label="颜色比例">
-                <n-slider v-model:value="config.style_params.multi_1.color_ratio" :min="0" :max="1" :step="0.1" />
-              </n-form-item>
-              <n-form-item label="优先海报">
-                <n-switch v-model:value="config.style_params.multi_1.use_primary" />
-              </n-form-item>
-            </n-form>
-          </n-tab-pane>
-
           <!-- 定时任务 -->
           <n-tab-pane name="scheduler" tab="定时任务">
             <n-form label-placement="left" label-width="120">
@@ -202,9 +148,6 @@ import {
   NInputNumber,
   NSelect,
   NSwitch,
-  NSlider,
-  NRadioGroup,
-  NRadioButton,
   NButton,
   NIcon,
   NTag,
@@ -240,12 +183,6 @@ const logLevelOptions = [
 const serverTypeOptions = [
   { label: 'Emby', value: 'emby' },
   { label: 'Jellyfin', value: 'jellyfin' }
-]
-
-const sortByOptions = [
-  { label: '随机', value: 'Random' },
-  { label: '创建日期', value: 'DateCreated' },
-  { label: '名称', value: 'SortName' }
 ]
 
 function createEmptyConfig() {
