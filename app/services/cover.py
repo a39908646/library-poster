@@ -1,8 +1,11 @@
 import base64
 import logging
 import tempfile
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+from PIL import Image
 
 from app.clients.emby import EmbyClient
 from app.clients.jellyfin import JellyfinClient
@@ -127,7 +130,8 @@ class CoverService:
         # 上传封面
         try:
             cover_bytes = base64.b64decode(cover_base64)
-            client.upload_cover(library_id, cover_bytes)
+            cover_bytes = self._to_jpeg(cover_bytes)
+            client.upload_cover(library_id, cover_bytes, content_type="image/jpeg")
             logger.info(f"Successfully uploaded cover for {library_name}")
 
             # 保存到本地（如果配置了）
@@ -344,3 +348,13 @@ class CoverService:
             title_config = runtime_config.titles[library_name]
             return title_config.zh, title_config.en
         return library_name, library_name.upper()
+
+    @staticmethod
+    def _to_jpeg(image_bytes: bytes) -> bytes:
+        """统一转为 JPEG 格式，确保 Emby/Jellyfin 兼容"""
+        img = Image.open(BytesIO(image_bytes))
+        if img.mode in ("RGBA", "P", "LA"):
+            img = img.convert("RGB")
+        buf = BytesIO()
+        img.save(buf, format="JPEG", quality=90, optimize=True)
+        return buf.getvalue()
