@@ -550,7 +550,7 @@ def create_style_single_1(image_path, title, font_path, font_size=(1,1), blur_si
             else:
                 raise ValueError(f"Unsupported format: {format}")
             
-        return image_to_base64(combined)
+        return image_to_base64(combined, format="jpeg")
         
     except Exception as e:
         logger.error(f"创建单图封面时出错: {e}")

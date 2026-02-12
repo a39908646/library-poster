@@ -1125,7 +1125,7 @@ def create_style_multi_1(library_dir, title, font_path, font_size=(1,1), is_blur
             else:
                 raise ValueError(f"Unsupported format: {format}")
             
-        return image_to_base64(result)
+        return image_to_base64(result, format="jpeg")
 
     except Exception as e:
         logger.error(f"创建多图封面时出错: {e}")
