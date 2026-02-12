@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   library-poster:
-    build: .
+    image: cloudwayne/library-poster:latest
     container_name: library-poster
     restart: unless-stopped
     ports:

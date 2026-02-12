@@ -2,11 +2,12 @@
 
 # Stage 1: Frontend build
 FROM node:18-alpine AS frontend-builder
-WORKDIR /frontend
-COPY frontend/package*.json ./
-RUN npm ci
-COPY frontend/ ./
-RUN npm run build
+WORKDIR /build
+COPY frontend/package*.json ./frontend/
+RUN cd frontend && npm ci
+COPY frontend/ ./frontend/
+COPY app/ ./app/
+RUN cd frontend && npm run build
 
 # Stage 2: Python application
 FROM python:3.11-slim
@@ -29,7 +30,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 
 # Copy frontend build
-COPY --from=frontend-builder /frontend/dist ./app/static
+COPY --from=frontend-builder /build/app/static ./app/static
 
 # Create data directory
 RUN mkdir -p /app/data
