@@ -55,10 +55,10 @@ class EmbyClient(BaseClient):
     def get_item_details(self, item_id: str) -> Dict[str, Any]:
         return self.get_json(self._path(f"/Items/{item_id}"))
 
-    def upload_cover(self, library_id: str, image_bytes: bytes, content_type: str = "image/png") -> None:
+    def upload_cover(self, library_id: str, image_base64: str, content_type: str = "image/jpeg") -> None:
         self._request(
             "POST",
             self._path(f"/Items/{library_id}/Images/Primary"),
-            data=image_bytes,
+            data=image_base64,
             headers={"Content-Type": content_type},
         )

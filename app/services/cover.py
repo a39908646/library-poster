@@ -126,8 +126,7 @@ class CoverService:
 
         # 上传封面
         try:
-            cover_bytes = base64.b64decode(cover_base64)
-            client.upload_cover(library_id, cover_bytes, content_type="image/jpeg")
+            client.upload_cover(library_id, cover_base64, content_type="image/jpeg")
             logger.info(f"Successfully uploaded cover for {library_name}")
 
             # 保存到本地（如果配置了）
@@ -135,7 +134,7 @@ class CoverService:
                 output_path = self.config.get_output_path()
                 if output_path:
                     output_file = output_path / f"{library_name}.jpg"
-                    output_file.write_bytes(cover_bytes)
+                    output_file.write_bytes(base64.b64decode(cover_base64))
                     logger.info(f"Saved cover to: {output_file}")
 
             # 更新历史记录
