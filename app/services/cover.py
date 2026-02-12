@@ -126,7 +126,7 @@ class CoverService:
 
         # 上传封面
         try:
-            client.upload_cover(library_id, cover_base64, content_type="image/jpeg")
+            client.upload_cover(library_id, cover_base64)
             logger.info(f"Successfully uploaded cover for {library_name}")
 
             # 保存到本地（如果配置了）

@@ -90,10 +90,11 @@ class BaseClient:
 
             if response.status_code in {429, 500, 502, 503, 504} and attempt < self.retries:
                 self.logger.warning(
-                    "HTTP %s %s returned %s, retrying (%s/%s)",
+                    "HTTP %s %s returned %s, body: %s, retrying (%s/%s)",
                     method,
                     url,
                     response.status_code,
+                    response.text[:200],
                     attempt,
                     self.retries,
                 )
@@ -101,7 +102,7 @@ class BaseClient:
 
             if not response.ok:
                 raise HTTPClientError(
-                    f"HTTP {response.status_code} for {url}",
+                    f"HTTP {response.status_code} for {url}: {response.text[:200]}",
                     status_code=response.status_code,
                     url=url,
                     response_text=response.text[:500],
