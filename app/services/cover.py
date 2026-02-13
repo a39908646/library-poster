@@ -7,7 +7,6 @@ from app.clients.emby import EmbyClient
 from app.clients.jellyfin import JellyfinClient
 from app.config import Config, ServerConfig
 from app.generator import generate_cover
-from app.storage.history import CoverHistory
 from app.utils.font import FontManager
 from app.utils.image import download_image
 
@@ -18,7 +17,6 @@ class CoverService:
     def __init__(self, config: Config):
         self.config = config
         self.font_manager = FontManager(config)
-        self.history = CoverHistory(config.get_data_path() / "cover_history.json")
         self.covers_cache_path = config.get_covers_path()
 
     def _create_client(self, server: ServerConfig):
@@ -128,9 +126,6 @@ class CoverService:
                     output_file = output_path / f"{library_name}.jpg"
                     output_file.write_bytes(base64.b64decode(cover_base64))
                     logger.info(f"Saved cover to: {output_file}")
-
-            # 更新历史记录
-            self.history.set(server.name, library_id, library_id, "generated")
 
         except Exception as e:
             logger.error(f"Failed to upload cover for {library_name}: {e}", exc_info=True)
