@@ -3,8 +3,7 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_USER="${SERVICE_USER:-$(whoami)}"
 
 echo "=== Library Poster 轻量级安装 ==="
@@ -47,7 +46,7 @@ After=network.target
 Type=simple
 User=$SERVICE_USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=/usr/bin/python3 $SCRIPT_DIR/webhook_listener.py
+ExecStart=/usr/bin/python3 $PROJECT_DIR/webhook.py
 Restart=on-failure
 RestartSec=10
 
@@ -69,7 +68,7 @@ After=network.target
 Type=oneshot
 User=$SERVICE_USER
 WorkingDirectory=$PROJECT_DIR
-ExecStart=/usr/bin/python3 $SCRIPT_DIR/lightweight_updater.py
+ExecStart=/usr/bin/python3 $PROJECT_DIR/update.py
 EOF
 
     # 定时器（每天凌晨 2 点）
@@ -100,7 +99,7 @@ fi
 
 # 5. 创建 cron 任务（备选方案）
 echo "[5/5] 配置 cron 任务（备选）..."
-CRON_CMD="0 2 * * * cd $PROJECT_DIR && /usr/bin/python3 $SCRIPT_DIR/lightweight_updater.py >> /tmp/library-poster.log 2>&1"
+CRON_CMD="0 2 * * * cd $PROJECT_DIR && /usr/bin/python3 $PROJECT_DIR/update.py >> /tmp/library-poster.log 2>&1"
 echo "建议的 cron 配置（每天凌晨 2 点）："
 echo "  $CRON_CMD"
 echo ""
@@ -111,6 +110,6 @@ echo "=== 安装完成 ==="
 echo ""
 echo "下一步："
 echo "1. 编辑配置: vi $PROJECT_DIR/config.yaml"
-echo "2. 测试更新: python3 $SCRIPT_DIR/lightweight_updater.py"
-echo "3. 启动 Webhook: python3 $SCRIPT_DIR/webhook_listener.py"
+echo "2. 测试更新: python3 $PROJECT_DIR/update.py"
+echo "3. 启动 Webhook: python3 $PROJECT_DIR/webhook.py"
 echo "4. 配置 Emby/Jellyfin Webhook: http://your-nas-ip:8000/webhook/emby"

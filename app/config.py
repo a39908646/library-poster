@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -242,7 +242,6 @@ class Config(BaseSettings):
 
 # 全局配置实例
 _config: Optional[Config] = None
-_reload_callbacks: List[callable] = []
 
 
 def get_config() -> Config:
@@ -252,65 +251,3 @@ def get_config() -> Config:
         _config = Config.load_from_yaml()
         _config.setup_logging()
     return _config
-
-
-def reload_config():
-    """重新加载配置并通知所有回调"""
-    global _config
-    _config = Config.load_from_yaml(CONFIG_PATH)
-    _config.setup_logging()
-    for callback in _reload_callbacks:
-        try:
-            callback(_config)
-        except Exception as e:
-            logging.getLogger(__name__).error(f"Config reload callback failed: {e}")
-    return _config
-
-
-def register_config_reload_callback(callback: callable):
-    """注册配置重载回调"""
-    if callback not in _reload_callbacks:
-        _reload_callbacks.append(callback)
-
-
-def unregister_config_reload_callback(callback: callable):
-    """取消注册配置重载回调"""
-    if callback in _reload_callbacks:
-        _reload_callbacks.remove(callback)
-
-
-def write_config_atomically(config_data: Dict, config_path: str = None):
-    """写入配置文件，优先原子写入，失败则直接写入"""
-    import shutil
-    import tempfile
-
-    if config_path is None:
-        config_path = CONFIG_PATH
-
-    config_file = Path(config_path)
-    config_file.parent.mkdir(parents=True, exist_ok=True)
-    backup_file = config_file.with_suffix(".yaml.bak")
-
-    # 备份现有配置
-    if config_file.exists():
-        shutil.copy2(config_file, backup_file)
-
-    # 尝试原子写入
-    try:
-        fd, temp_path = tempfile.mkstemp(suffix=".yaml", dir=config_file.parent)
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                f.flush()
-                os.fsync(f.fileno())
-            Path(temp_path).replace(config_file)
-            return
-        except OSError:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
-            raise
-    except OSError:
-        # 原子写入失败（如 Docker 挂载），回退到直接写入
-        logging.getLogger(__name__).warning("原子写入失败，回退到直接写入")
-        with open(config_file, "w", encoding="utf-8") as f:
-            yaml.dump(config_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)

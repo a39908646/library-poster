@@ -1,6 +1,5 @@
 import base64
 import logging
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -17,13 +16,6 @@ logger = logging.getLogger(__name__)
 
 class CoverService:
     def __init__(self, config: Config):
-        self.config = config
-        self.font_manager = FontManager(config)
-        self.history = CoverHistory(config.get_data_path() / "cover_history.json")
-        self.covers_cache_path = config.get_covers_path()
-
-    def refresh_config(self, config: Config):
-        """刷新配置"""
         self.config = config
         self.font_manager = FontManager(config)
         self.history = CoverHistory(config.get_data_path() / "cover_history.json")
@@ -142,90 +134,6 @@ class CoverService:
 
         except Exception as e:
             logger.error(f"Failed to upload cover for {library_name}: {e}", exc_info=True)
-
-    def preview_cover(
-        self,
-        server_name: str,
-        library_name: Optional[str] = None,
-        config_override: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """预览封面（不上传、不写历史）"""
-        server = next(
-            (s for s in self.config.servers if s.name == server_name),
-            None
-        )
-        if not server:
-            raise ValueError(f"Server not found: {server_name}")
-
-        # 合并配置覆盖
-        preview_config = self._merge_config_override(config_override)
-
-        client = self._create_client(server)
-        try:
-            libraries = client.get_libraries()
-
-            if library_name:
-                library = next(
-                    (lib for lib in libraries if lib.get("Name") == library_name),
-                    None
-                )
-                if not library:
-                    raise ValueError(f"Library not found: {library_name}")
-            else:
-                # 使用第一个非排除的媒体库
-                library = next(
-                    (lib for lib in libraries if lib.get("Name") not in server.exclude_libraries),
-                    None
-                )
-                if not library:
-                    raise ValueError("No available library found")
-
-            return self._generate_preview(client, server, library, preview_config)
-        finally:
-            client.close()
-
-    def _merge_config_override(self, config_override: Optional[Dict[str, Any]]) -> Config:
-        """合并配置覆盖"""
-        if not config_override:
-            return self.config
-
-        config_data = self.config.model_dump()
-        self._deep_merge(config_data, config_override)
-        return Config(**config_data)
-
-    def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]):
-        for key, value in override.items():
-            if isinstance(value, dict) and isinstance(base.get(key), dict):
-                self._deep_merge(base[key], value)
-            else:
-                base[key] = value
-
-    def _generate_preview(
-        self,
-        client,
-        server: ServerConfig,
-        library: Dict,
-        config: Config
-    ) -> str:
-        """使用临时目录生成预览"""
-        library_name = library.get("Name") or "preview"
-        title = self._get_library_title(library_name, config)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            if not self._prepare_library_images(client, library, temp_path, config):
-                raise ValueError(f"Failed to prepare images for {library_name}")
-
-            font_manager = FontManager(config)
-            use_multi_1 = config.cover.style == "multi_1"
-            font_paths = font_manager.get_font_paths(use_multi_1)
-
-            cover_base64 = generate_cover(temp_path, title, font_paths, config)
-            if not cover_base64:
-                raise ValueError(f"Failed to generate cover for {library_name}")
-
-            return cover_base64
 
     def _prepare_library_images(
         self,

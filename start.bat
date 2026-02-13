@@ -1,7 +1,7 @@
 @echo off
-REM Library Poster 快速启动脚本 (Windows)
+REM Library Poster 快速启动脚本 (Windows, Webhook 模式)
 
-echo === Library Poster 启动脚本 ===
+echo === Library Poster 启动 ===
 
 REM 检查配置文件
 if not exist "config.yaml" (
@@ -17,17 +17,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 检查虚拟环境
-if not exist "venv" (
-    echo 创建虚拟环境...
-    python -m venv venv
-)
-
-echo 激活虚拟环境...
-call venv\Scripts\activate.bat
-
 echo 安装依赖...
 pip install -r requirements.txt
 
-echo 启动应用...
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+echo 启动 Webhook 监听器...
+python webhook.py

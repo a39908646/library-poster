@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Library Poster 快速启动脚本
+# Library Poster 快速启动脚本（Webhook 模式）
 
-echo "=== Library Poster 启动脚本 ==="
+echo "=== Library Poster 启动 ==="
 
 # 检查配置文件
 if [ ! -f "config.yaml" ]; then
@@ -12,20 +12,13 @@ if [ ! -f "config.yaml" ]; then
 fi
 
 # 检查 Python 版本
-python_version=$(python3 --version 2>&1 | awk '{print $2}')
-echo "Python 版本: $python_version"
+python3 --version
 
-# 检查依赖
-if [ ! -d "venv" ]; then
-    echo "创建虚拟环境..."
-    python3 -m venv venv
+# 安装依赖（首次运行）
+if ! python3 -c "import pydantic" 2>/dev/null; then
+    echo "安装依赖..."
+    pip3 install -r requirements.txt
 fi
 
-echo "激活虚拟环境..."
-source venv/bin/activate
-
-echo "安装依赖..."
-pip install -r requirements.txt
-
-echo "启动应用..."
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+echo "启动 Webhook 监听器..."
+python3 webhook.py

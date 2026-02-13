@@ -44,10 +44,8 @@ config.yaml
 .DS_Store
 Thumbs.db
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+# Tool cache
+.ace-tool/
 
 # Docker
 .dockerignore

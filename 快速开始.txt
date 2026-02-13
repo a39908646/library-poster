@@ -1,9 +1,9 @@
 ===============================
-Library Poster 轻量版 - 快速开始
+Library Poster - 快速开始
 ===============================
 
 【一句话说明】
-这是一个极简版本，去掉了 Web UI，只保留核心功能：定时更新 + Webhook 监听
+自动为 Emby/Jellyfin 媒体库生成封面海报，支持定时更新 + Webhook 监听
 
 【资源占用】
 - 空闲内存: ~30MB
@@ -14,9 +14,7 @@ Library Poster 轻量版 - 快速开始
 第一步：安装
 ===============================
 
-在项目目录执行：
-
-cd standalone
+cd library-poster
 chmod +x install.sh
 ./install.sh
 
@@ -65,10 +63,10 @@ sudo systemctl list-timers
 
 1. 添加定时任务:
    crontab -e
-   添加: 0 2 * * * cd /path/to/library-poster && ./standalone/update.py
+   添加: 0 2 * * * cd /path/to/library-poster && python3 update.py
 
 2. 启动 Webhook 监听:
-   nohup ./standalone/webhook.py > /tmp/webhook.log 2>&1 &
+   nohup python3 webhook.py > /tmp/webhook.log 2>&1 &
 
 【方式 C: 仅定时更新】
 
@@ -77,7 +75,7 @@ sudo systemctl list-timers
 
 2. 只用 cron:
    crontab -e
-   添加: 0 2 * * * cd /path/to/library-poster && ./standalone/update.py
+   添加: 0 2 * * * cd /path/to/library-poster && python3 update.py
 
 ===============================
 第四步：配置 Webhook（可选）
@@ -97,7 +95,7 @@ sudo systemctl list-timers
 ===============================
 
 【手动触发更新】
-./standalone/update.py
+python3 update.py
 
 【测试 Webhook】
 curl -X POST http://localhost:8000/webhook/emby \
@@ -120,7 +118,7 @@ A: 1. 检查端口: netstat -tlnp | grep 8000
 Q: 定时任务没执行？
 A: 1. 检查 cron 日志: grep CRON /var/log/syslog
    2. 检查 timer: systemctl list-timers
-   3. 手动运行测试: ./standalone/update.py
+   3. 手动运行测试: python3 update.py
 
 Q: 内存占用太高？
 A: systemd 已配置 100MB 限制，超出会自动重启
@@ -144,20 +142,5 @@ sudo systemctl daemon-reload
 
 删除 cron:
 crontab -e  # 手动删除相关行
-
-===============================
-完整版 vs 轻量版
-===============================
-
-【使用轻量版如果你】
-✅ NAS 资源有限（<2GB 内存）
-✅ 只需要自动更新功能
-✅ 不需要 Web UI
-✅ 追求低功耗
-
-【使用完整版如果你】
-✅ 需要 Web UI 在线配置
-✅ 需要实时预览
-✅ 服务器资源充足
 
 ===============================
