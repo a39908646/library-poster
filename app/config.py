@@ -8,74 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml
 
 # 配置文件路径，优先使用环境变量
-CONFIG_PATH = os.getenv("CONFIG_PATH", "config/config.yaml")
-
-DEFAULT_CONFIG = """# Library Poster 配置文件
-app:
-  timezone: Asia/Shanghai
-  data_dir: ./data
-  log_level: INFO
-
-servers: []
-  # - name: "我的Emby"
-  #   type: "emby"
-  #   url: "http://192.168.1.100:8096"
-  #   api_key: "your_api_key"
-  #   exclude_libraries: []
-
-cover:
-  style: "single_1"
-  sort_by: "Random"
-  save_to_local: false
-  output_dir: "covers_output"
-  custom_images_dir: ""
-
-fonts:
-  main:
-    zh_url: ""
-    en_url: ""
-    zh_local: ""
-    en_local: ""
-    zh_size: 1.0
-    en_size: 1.0
-  multi_1:
-    zh_url: ""
-    en_url: ""
-    zh_local: ""
-    en_local: ""
-    zh_size: 1.0
-    en_size: 1.0
-
-style_params:
-  single:
-    blur_size: 50
-    color_ratio: 0.8
-    use_primary: false
-  multi_1:
-    blur: false
-    blur_size: 50
-    color_ratio: 0.8
-    use_primary: true
-
-titles: {}
-
-scheduler:
-  enabled: false
-  cron: "0 2 * * *"
-
-webhook:
-  enabled: true
-  delay: 60
-
-network:
-  proxy: ""
-  github_proxy: ""
-  timeout: 30
-  retries: 3
-
-performance:
-  max_concurrent: 3
-"""
+CONFIG_PATH = os.getenv("CONFIG_PATH", "config.yaml")
 
 
 class AppConfig(BaseModel):
@@ -179,16 +112,16 @@ class Config(BaseSettings):
 
     @classmethod
     def load_from_yaml(cls, config_path: str = None) -> "Config":
-        """从 YAML 文件加载配置，不存在则自动创建默认配置"""
+        """从 YAML 文件加载配置"""
         if config_path is None:
             config_path = CONFIG_PATH
         config_file = Path(config_path)
 
-        # 配置文件不存在时自动创建
         if not config_file.exists():
-            config_file.parent.mkdir(parents=True, exist_ok=True)
-            config_file.write_text(DEFAULT_CONFIG, encoding="utf-8")
-            logging.getLogger(__name__).info(f"已创建默认配置文件: {config_path}")
+            raise FileNotFoundError(
+                f"配置文件不存在: {config_path}\n"
+                f"请复制 config.example.yaml 为 config.yaml 并修改配置"
+            )
 
         with open(config_file, "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f)
